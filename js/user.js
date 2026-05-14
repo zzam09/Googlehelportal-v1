@@ -1,5 +1,5 @@
 import { db as firestoreDb } from './firebase-config.js';
-import { doc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { doc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 import { getSession, isLoggedIn, clearSession } from './auth.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -150,17 +150,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             const userData = snap.data();
             
             // Security: If not admin, ensure they are viewing their own profile
-            // (Assuming no admin role check for now, just restricted to self)
             if (userData.email !== email) {
                 console.warn('Access denied: Email mismatch');
-                // You might want to redirect them to THEIR profile instead
-                // window.location.replace('/pages/user.html');
-                // return;
             }
 
             hideLoading();
             populatePage(userData);
-        } catch (err) { showFetchError(); }
+        } catch (err) { 
+            console.error('Firestore Error (getDoc):', err);
+            showFetchError(); 
+        }
         return;
     }
 
@@ -170,7 +169,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (snap.empty) { showProfileNotSetup(email); return; }
         hideLoading();
         populatePage(snap.docs[0].data());
-    } catch (err) { showFetchError(); }
+    } catch (err) { 
+        console.error('Firestore Error (getDocs):', err);
+        showFetchError(); 
+    }
 });
 
 document.addEventListener('click', async function (e) {

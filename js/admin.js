@@ -1,7 +1,7 @@
 import { db as firestoreDb } from './firebase-config.js';
 import {
     collection, getDocs, doc, setDoc, deleteDoc
-} from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+} from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 
 let users = {};
 
@@ -80,6 +80,7 @@ async function loadUsers() {
         snap.forEach(d => { users[d.id] = d.data(); });
         renderTable();
     } catch (err) {
+        console.error('Firestore Error (loadUsers):', err);
         showFetchError('Could not load members. Check your Firestore security rules or internet connection.');
     }
 }
@@ -172,6 +173,7 @@ async function saveUser() {
         closeModal();
         renderTable();
     } catch (err) {
+        console.error('Firestore Error (saveUser):', err);
         errEl.textContent   = 'Failed to save. Check your Firestore rules or connection.';
         errEl.style.display = 'block';
     } finally {
@@ -203,6 +205,7 @@ async function deleteUser() {
         closeConfirm();
         renderTable();
     } catch (err) {
+        console.error('Firestore Error (deleteUser):', err);
         delBtn.disabled    = false;
         delBtn.textContent = 'Remove';
         alert('Failed to delete member. Check your Firestore rules or connection.');

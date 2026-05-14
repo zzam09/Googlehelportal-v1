@@ -2,8 +2,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(
     'https://wrqwbzdwkuipaomufjjq.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndycXdiemR3a3VpcGFvbXVmampxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzQ0NDYsImV4cCI6MjA5NDExMDQ0Nn0.Q7C3pgSdx-K14hL4sSsLe7jzm0--TMXDGHxnIHGBG8A'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndycXdiemR3a3VpcGFvbXVmampxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzQ0NDYsImV4cCI6MjA5NDExMDQ0Nn0.Q7C3pgSdx-K14hL4sSsLe7jzm0--TMXDGHxnIHGBG8A',
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
+    }
 );
+
+// Listen for auth changes
+supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('session_email');
+        window.location.replace('/pages/login.html');
+    }
+});
 
 export async function clearSession() {
     console.log('Clearing session...');
@@ -34,30 +49,33 @@ export function getSession() {
 }
 
 export async function isLoggedIn() {
-    try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-            saveSession(data.session.user.email);
-            return true;
-        }
-    } catch (e) {
-        console.error('Session check error:', e);
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+        saveSession(data.session.user.email);
+        return true;
     }
-    return !!getSession();
+    return false;
 }
 
 export async function sendOTP(email) {
-    const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false }
-    });
-    if (error) {
-        if (error.message.toLowerCase().includes('not allowed') || 
-            error.message.toLowerCase().includes('user not found') ||
-            error.message.toLowerCase().includes('signup')) {
-            throw new Error("You don't have membership access. Please contact your administrator.");
+    console.log('Sending OTP to:', email);
+    try {
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: false }
+        });
+        if (error) {
+            console.error('Supabase signInWithOtp error:', error);
+            if (error.message.toLowerCase().includes('not allowed') || 
+                error.message.toLowerCase().includes('user not found') ||
+                error.message.toLowerCase().includes('signup')) {
+                throw new Error("You don't have membership access. Please contact your administrator.");
+            }
+            throw new Error(error.message);
         }
-        throw new Error(error.message);
+    } catch (err) {
+        console.error('sendOTP catch error:', err);
+        throw err;
     }
 }
 
