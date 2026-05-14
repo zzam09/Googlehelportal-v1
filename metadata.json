@@ -1,0 +1,6 @@
+{
+  "name": "SpaceX HQ Portal",
+  "description": "A restricted access portal for SpaceX HQ members, featuring secure login and administrative control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
