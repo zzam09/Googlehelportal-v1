@@ -1,4 +1,4 @@
-import { welcomeTemplate } from '../../../lib/email-templates/welcome.js';
+import { welcomeTemplate } from '../../lib/email-templates/welcome.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

@@ -170,6 +170,16 @@ async function saveUser() {
         await setDoc(doc(firestoreDb, 'members', targetId), member);
         users[targetId] = member;
 
+        // Trigger welcome email for new members
+        if (isNew && email) {
+            console.log('Triggering welcome email for new user:', email);
+            fetch('/api/send-welcome-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email })
+            }).catch(e => console.error('Failed to trigger welcome email:', e));
+        }
+
         closeModal();
         renderTable();
     } catch (err) {
