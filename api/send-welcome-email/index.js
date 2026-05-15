@@ -1,4 +1,4 @@
-import { welcomeTemplate } from '../../lib/email-templates/welcome.js';
+import { getEmailTemplate } from '../email-template.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -18,6 +18,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const html = getEmailTemplate({
+        title: `Welcome to the Fleet, ${name || 'Space Voyager'}`,
+        mainMessage: "Access granted. Your [SpaceX/Tesla] Member Portal is now online. Use it to schedule your next private meeting, find local meetups, or access exclusive member documents and more.",
+        buttonText: "ACCESS PORTAL",
+        buttonUrl: "https://spacexmembership-5cdc3.firebaseapp.com/pages/login.html"
+    });
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -28,7 +35,7 @@ export default async function handler(req, res) {
         from: 'SpaceX Operations <onboarding@resend.dev>',
         to: [email],
         subject: 'Welcome to the SpaceX Fleet',
-        html: welcomeTemplate(name || 'Space Voyager'),
+        html: html,
       }),
     });
 
