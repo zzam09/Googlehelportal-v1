@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'SpaceX Operations <onboarding@resend.dev>',
+        from: 'SpaceX Operations <noreply@spacexhqvip.com>',
         to: [email],
         subject: 'Welcome to the SpaceX Fleet',
         html: html,
