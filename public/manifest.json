@@ -1,0 +1,18 @@
+{
+  "name": "MailOps — SpaceX Operations",
+  "short_name": "MailOps",
+  "description": "Internal mail composer for SpaceX Operations",
+  "start_url": "/pages/compose",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
