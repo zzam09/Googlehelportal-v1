@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRACKING SYSTEMS — SpaceX Portal</title>
+  <link rel="stylesheet" href="/pages/shared.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Auth Gate ─────────────────────────── */
+    #auth-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .auth-card .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .auth-card h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+
+    /* ── App Shell ─────────────────────────── */
+    #app { display: none; }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-bar-left .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .top-bar-left h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .back-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* ── Main Layout ───────────────────────── */
+    .main { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Add Tracker Card ──────────────────── */
+    .add-card {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 36px;
+    }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    input[type="text"], textarea {
+      background: #0a0a0a;
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--gold);
+    }
+
+    textarea {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      min-height: 130px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    textarea::placeholder { color: rgba(161,161,170,0.4); }
+    input::placeholder    { color: rgba(161,161,170,0.4); }
+
+    /* ── Buttons ───────────────────────────── */
+    .btn-gold {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 11px 24px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      text-transform: uppercase;
+    }
+    .btn-gold:hover { opacity: 0.85; }
+    .btn-gold:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-danger {
+      background: none;
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 6px 12px;
+      transition: background 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); border-color: var(--danger); }
+
+    /* ── Tracker List ──────────────────────── */
+    .trackers-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .count-badge {
+      background: rgba(197,160,89,0.12);
+      border: 1px solid rgba(197,160,89,0.25);
+      border-radius: 20px;
+      color: var(--gold);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+
+    .tracker-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: border-color 0.2s;
+    }
+    .tracker-item:hover { border-color: var(--border-bright); }
+    .tracker-item.disabled { opacity: 0.45; }
+
+    .tracker-info { flex: 1; min-width: 0; }
+
+    .tracker-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tracker-preview {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tracker-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* ── Toggle Switch ─────────────────────── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      min-width: 26px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 38px;
+      height: 22px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider:before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    input:checked + .slider { background: rgba(197,160,89,0.3); }
+    input:checked + .slider:before { transform: translateX(16px); background: var(--gold); }
+
+    /* ── Empty / Loading ───────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 52px 24px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed var(--border-bright);
+      border-radius: var(--radius);
+    }
+    .empty-state p { font-size: 13px; line-height: 1.6; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error   { border-color: var(--danger);  color: var(--danger);  }
+
+    @media (max-width: 600px) {
+      .top-bar { padding: 16px 18px; }
+      .main { padding: 20px 16px; }
+      .add-card { padding: 20px 18px; }
+      .tracker-item { flex-wrap: wrap; }
+      .tracker-actions { width: 100%; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Gate -->
+  <div id="auth-gate">
+    <div class="auth-card">
+      <div class="logo">SpaceX Portal</div>
+      <h1>Tracking Systems</h1>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Access Code</label>
+        <input type="password" id="pw-input" placeholder="Enter admin password" autocomplete="off" />
+      </div>
+      <button class="btn-gold" style="width:100%" onclick="checkAuth()">AUTHENTICATE</button>
+      <p id="auth-err" style="color:var(--danger);font-size:12px;margin-top:12px;display:none">Invalid access code</p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app">
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="label">SpaceX Portal</div>
+        <h1>Tracking Systems</h1>
+      </div>
+      <a href="/pages/hq-control-7x9k.html" class="back-btn">← HQ</a>
+    </div>
+
+    <div class="main">
+
+      <!-- Add Tracker -->
+      <div class="add-card">
+        <div class="section-label">⊕ Add New Tracker</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tracker Name</label>
+            <input type="text" id="new-name" placeholder="e.g. Tawk.to Live Chat" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Script Tag — paste the full &lt;script&gt;...&lt;/script&gt; block</label>
+          <textarea id="new-script" placeholder="<!-- Paste your full script tag here -->
+<script type=&quot;text/javascript&quot;>
+  var Tawk_API = Tawk_API || {};
+  ...
+</script>"></textarea>
+        </div>
+        <button class="btn-gold" id="add-btn" onclick="addTracker()">SAVE &amp; DEPLOY</button>
+      </div>
+
+      <!-- Tracker List -->
+      <div class="trackers-header">
+        <div class="section-label" style="margin-bottom:0">Active Trackers</div>
+        <span class="count-badge" id="count-badge">0 trackers</span>
+      </div>
+      <div id="tracker-list"></div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ADMIN_PASS = 'Sx9k@Zm#4Qp';
+    let trackers = [];
+
+    // ── Auth ──────────────────────────────────────────
+    function checkAuth() {
+      const val = document.getElementById('pw-input').value;
+      if (val === ADMIN_PASS) {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadTrackers();
+      } else {
+        document.getElementById('auth-err').style.display = 'block';
+        document.getElementById('pw-input').value = '';
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('auth-gate').style.display !== 'none') {
+        checkAuth();
+      }
+    });
+
+    // ── Load ──────────────────────────────────────────
+    async function loadTrackers() {
+      try {
+        const res = await fetch('/api/trackers');
+        const json = await res.json();
+        trackers = json.trackers || [];
+        renderList();
+      } catch (e) {
+        showToast('Could not load trackers', 'error');
+      }
+    }
+
+    // ── Render ────────────────────────────────────────
+    function renderList() {
+      const list = document.getElementById('tracker-list');
+      const badge = document.getElementById('count-badge');
+      const active = trackers.filter(t => t.enabled !== false).length;
+      badge.textContent = `${trackers.length} tracker${trackers.length !== 1 ? 's' : ''} · ${active} active`;
+
+      if (!trackers.length) {
+        list.innerHTML = `<div class="empty-state">
+          <p>No trackers added yet.<br/>Paste any script tag above to get started.</p>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = trackers.map(t => `
+        <div class="tracker-item ${t.enabled === false ? 'disabled' : ''}" id="item-${t.id}">
+          <div class="tracker-info">
+            <div class="tracker-name">${escHtml(t.name)}</div>
+            <div class="tracker-preview">${escHtml(t.script.replace(/\s+/g, ' ').substring(0, 80))}…</div>
+          </div>
+          <div class="tracker-actions">
+            <label class="toggle-wrap" title="Enable / Disable">
+              <span class="toggle-label">${t.enabled !== false ? 'ON' : 'OFF'}</span>
+              <label class="toggle">
+                <input type="checkbox" ${t.enabled !== false ? 'checked' : ''}
+                  onchange="toggleTracker('${t.id}', this.checked)" />
+                <span class="slider"></span>
+              </label>
+            </label>
+            <button class="btn-danger" onclick="deleteTracker('${t.id}')">DELETE</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Add ───────────────────────────────────────────
+    async function addTracker() {
+      const name   = document.getElementById('new-name').value.trim();
+      const script = document.getElementById('new-script').value.trim();
+      if (!name || !script) return showToast('Name and script are required', 'error');
+
+      const btn = document.getElementById('add-btn');
+      btn.disabled = true;
+      btn.textContent = 'SAVING…';
+
+      try {
+        const res = await fetch('/api/trackers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, script, enabled: true }),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        trackers.push({ id: data.id, name, script, enabled: true });
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-script').value = '';
+        renderList();
+        // Clear sessionStorage cache so pages pick up the new tracker
+        sessionStorage.removeItem('_sx_trackers_v1');
+        showToast('Tracker saved — now live on all pages ✓', 'success');
+      } catch {
+        showToast('Failed to save tracker', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'SAVE & DEPLOY';
+      }
+    }
+
+    // ── Toggle ────────────────────────────────────────
+    async function toggleTracker(id, enabled) {
+      try {
+        await fetch('/api/trackers', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, enabled }),
+        });
+        trackers = trackers.map(t => t.id === id ? { ...t, enabled } : t);
+        sessionStorage.removeItem('_sx_trackers_v1');
+        renderList();
+        showToast(enabled ? 'Tracker enabled' : 'Tracker paused', 'success');
+      } catch {
+        showToast('Update failed', 'error');
+        renderList(); // Reset toggle
+      }
+    }
+
+    // ── Delete ────────────────────────────────────────
+    async function deleteTracker(id) {
+      if (!confirm('Remove this tracker from all pages?')) return;
+      try {
+        await fetch(`/api/trackers?id=${id}`, { method: 'DELETE' });
+        trackers = trackers.filter(t => t.id !== id);
+        sessionStorage.removeItem('_sx_trackers_v1');
+        renderList();
+        showToast('Tracker removed', 'success');
+      } catch {
+        showToast('Delete failed', 'error');
+      }
+    }
+
+    // ── Utils ─────────────────────────────────────────
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.className = 'toast', 3000);
+    }
+  </script>
+</body>
+</html>
