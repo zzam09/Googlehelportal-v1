@@ -1,4 +1,4 @@
-import { getEmailTemplate } from '../email-template.js';
+import { sendEmail } from '../../emails/sendEmail.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -8,45 +8,26 @@ export default async function handler(req, res) {
   const { name, email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
+    return res.status(400).json({ error: 'email is required' });
   }
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-
-  if (!RESEND_API_KEY) {
-    return res.status(500).json({ error: 'RESEND_API_KEY is not configured' });
-  }
-
-  try {
-    const html = getEmailTemplate({
-        title: `Welcome to the Fleet, ${name || 'Space Voyager'}`,
-        mainMessage: "Access granted. Your [SpaceX/Tesla] Member Portal is now online. Use it to schedule your next private meeting, find local meetups, or access exclusive member documents and more.",
-        buttonText: "ACCESS PORTAL",
-        buttonUrl: "https://spacexmembership-5cdc3.firebaseapp.com/pages/login.html"
-    });
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: 'SpaceX Operations <noreply@spacexhqvip.com>',
-        to: [email],
-        subject: 'Welcome to the SpaceX Fleet',
-        html: html,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json(data);
+  const result = await sendEmail({
+    to: email,
+    subject: 'Welcome to the SpaceX Fleet',
+    template: 'welcome',
+    fields: {
+      title: `Welcome to the Fleet, ${name || 'Space Voyager'}`,
+      mainMessage: 'Access granted. Your SpaceX Member Portal is now online. Use it to schedule meetings, find local meetups, and access exclusive member documents.',
+      buttonText: 'ACCESS PORTAL',
+      buttonUrl: process.env.SITE_URL || 'https://yoursite.vercel.app/pages/login',
+      heroImage: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=1200&q=80',
     }
+  });
 
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  if (!result.ok) {
+    console.error('[send-welcome-email]', result.error);
+    return res.status(500).json({ error: result.error });
   }
+
+  return res.status(200).json({ success: true, id: result.id });
 }
