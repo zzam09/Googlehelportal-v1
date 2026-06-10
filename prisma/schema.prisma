@@ -1,0 +1,61 @@
+// prisma/schema.prisma
+// Supabase PostgreSQL — spacexporter project (eu-west-1)
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Members ──────────────────────────────────────────────────────────────────
+// Mirrors the Firestore `members` collection.
+// `id` is auto-generated (cuid) to match Firestore's auto-ID behaviour.
+
+model Member {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  role            String
+  tier            Tier     @default(Explorer)
+  clearance       String   @default("INTERNAL")
+  status          Status   @default(PENDING)
+  joined          String   // e.g. "May 2025" — kept as string to match existing data
+  avatarUrl       String?
+  backgroundUrl   String?
+  welcomeEmailSent Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("members")
+}
+
+// ─── Trackers ─────────────────────────────────────────────────────────────────
+// Mirrors the Firestore `trackers` collection.
+
+model Tracker {
+  id        String   @id @default(cuid())
+  name      String
+  script    String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("trackers")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Tier {
+  Explorer
+  Pioneer
+  Vanguard
+}
+
+enum Status {
+  ACTIVE
+  PENDING
+}
