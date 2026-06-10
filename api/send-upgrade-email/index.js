@@ -1,18 +1,9 @@
+// api/send-upgrade-email/index.js
+// Vercel Serverless — Send tier upgrade email
+// Replaces Firestore reads/writes with Prisma
+
 import { sendEmail } from '../../emails/sendEmail.js';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey:            process.env.VITE_FIREBASE_API_KEY,
-  authDomain:        process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             process.env.VITE_FIREBASE_APP_ID,
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+import { prisma } from '../../lib/prisma.js';
 
 const TIER_MESSAGES = {
   Pioneer: 'You now have access to exclusive Pioneer-tier briefings, priority event access, and expanded mission documents.',
@@ -26,43 +17,40 @@ export default async function handler(req, res) {
   }
 
   const { memberId, email, name, tier } = req.body;
-
   if (!memberId || !email || !tier) {
     return res.status(400).json({ error: 'memberId, email, and tier are required' });
   }
 
-  // 1. Check Firestore — has this tier email already been sent?
-  let memberSnap;
+  // 1. Read member from Postgres via Prisma
+  let member;
   try {
-    memberSnap = await getDoc(doc(db, 'members', memberId));
+    member = await prisma.member.findUnique({ where: { id: memberId } });
   } catch (err) {
-    return res.status(500).json({ error: `Firestore read failed: ${err.message}` });
+    return res.status(500).json({ error: `DB read failed: ${err.message}` });
   }
 
-  if (!memberSnap.exists()) {
-    return res.status(404).json({ error: 'Member not found in Firestore' });
+  if (!member) {
+    return res.status(404).json({ error: 'Member not found' });
   }
 
-  const memberData = memberSnap.data();
-
-  // Guard: if we already sent an email for this exact tier, stop here
-  if (memberData.upgradeEmailSent === tier) {
+  // 2. Guard: if we already sent an email for this exact tier, stop here
+  if (member.upgradeEmailSent === tier) {
     console.log(`[send-upgrade-email] Skipping — already sent ${tier} email to ${email}`);
     return res.status(200).json({ skipped: true, reason: `${tier} email already sent` });
   }
 
-  // 2. Send the email
+  // 3. Send the email
   const result = await sendEmail({
     to: email,
     subject: `Your SpaceX Membership Has Been Upgraded — ${tier}`,
     template: 'upgrade',
     fields: {
-      title: `Tier Upgrade Confirmed`,
+      title: 'Tier Upgrade Confirmed',
       tierName: tier.toUpperCase(),
       mainMessage: TIER_MESSAGES[tier] || 'Your membership tier has been updated.',
       buttonText: 'ACCESS PORTAL',
       buttonUrl: process.env.SITE_URL || 'https://yoursite.vercel.app/pages/login',
-    }
+    },
   });
 
   if (!result.ok) {
@@ -70,15 +58,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: result.error });
   }
 
-  // 3. Mark as sent in Firestore so it never sends again for this tier
+  // 4. Mark as sent in Postgres so it never sends again for this tier
   try {
-    await updateDoc(doc(db, 'members', memberId), {
-      upgradeEmailSent: tier,
-      upgradeEmailSentAt: new Date().toISOString(),
+    await prisma.member.update({
+      where: { id: memberId },
+      data: {
+        upgradeEmailSent: tier,
+        upgradeEmailSentAt: new Date().toISOString(),
+      },
     });
   } catch (err) {
-    // Email was sent successfully — just log the Firestore update failure
-    console.error('[send-upgrade-email] Firestore update failed:', err.message);
+    // Email was sent successfully — log the DB update failure but don't error
+    console.error('[send-upgrade-email] DB update failed:', err.message);
   }
 
   return res.status(200).json({ success: true, id: result.id });
