@@ -1,80 +1,66 @@
-// ============================================================
-//  /api/trackers.js — Tracker CRUD API
-//  Vercel serverless function
+// api/trackers.js
+// Vercel Serverless — Trackers CRUD
 //
-//  GET    /api/trackers          → list all trackers
-//  POST   /api/trackers          → add new tracker
-//  DELETE /api/trackers?id=XXX   → delete tracker
-//  PATCH  /api/trackers          → toggle enabled { id, enabled }
-// ============================================================
+// GET    /api/trackers          → list all trackers
+// POST   /api/trackers          → add new tracker
+// PATCH  /api/trackers          → toggle enabled { id, enabled }
+// DELETE /api/trackers?id=XXX   → delete tracker
 
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-
-// Reuse existing Firebase config from env vars
-const firebaseConfig = {
-  apiKey:            process.env.VITE_FIREBASE_API_KEY,
-  authDomain:        process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             process.env.VITE_FIREBASE_APP_ID,
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+import { prisma } from '../lib/prisma.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-
-    // ── GET — return all trackers ──────────────────────────
+    // ── GET — return all trackers ────────────────────────────────────────────
     if (req.method === 'GET') {
-      const snap = await getDocs(collection(db, 'trackers'));
-      const trackers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const trackers = await prisma.tracker.findMany({
+        orderBy: { createdAt: 'asc' },
+      });
       return res.status(200).json({ trackers });
     }
 
-    // ── POST — add new tracker ─────────────────────────────
+    // ── POST — add new tracker ───────────────────────────────────────────────
     if (req.method === 'POST') {
       const { name, script, enabled = true } = req.body;
       if (!name || !script) {
         return res.status(400).json({ error: 'name and script are required' });
       }
-      const ref = await addDoc(collection(db, 'trackers'), {
-        name,
-        script,
-        enabled,
-        createdAt: serverTimestamp(),
+      const tracker = await prisma.tracker.create({
+        data: { name, script, enabled },
       });
-      return res.status(201).json({ id: ref.id, name, script, enabled });
+      return res.status(201).json(tracker);
     }
 
-    // ── PATCH — toggle enabled/disabled ───────────────────
+    // ── PATCH — toggle enabled/disabled ─────────────────────────────────────
     if (req.method === 'PATCH') {
       const { id, enabled } = req.body;
       if (!id) return res.status(400).json({ error: 'id is required' });
-      await updateDoc(doc(db, 'trackers', id), { enabled });
-      return res.status(200).json({ ok: true });
+      const tracker = await prisma.tracker.update({
+        where: { id },
+        data: { enabled },
+      });
+      return res.status(200).json({ ok: true, tracker });
     }
 
-    // ── DELETE — remove tracker ────────────────────────────
+    // ── DELETE — remove tracker ──────────────────────────────────────────────
     if (req.method === 'DELETE') {
-      const id = req.query.id;
+      const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'id query param required' });
-      await deleteDoc(doc(db, 'trackers', id));
+      await prisma.tracker.delete({ where: { id } });
       return res.status(200).json({ ok: true });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[trackers API]', err);
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Tracker not found' });
+    }
+    console.error('[api/trackers]', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
