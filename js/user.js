@@ -1,5 +1,3 @@
-import { db as firestoreDb } from './firebase-config.js';
-import { doc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 import { getSession, isLoggedIn, clearSession } from './auth.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -135,8 +133,6 @@ async function handleSignOut() {
         console.error('Logout failed:', err);
     }
 }
-// signOut is now defined globally in user.html for better availability
-// window.signOut = handleSignOut;
 
 document.addEventListener('DOMContentLoaded', async function () {
     showLoading();
@@ -151,33 +147,35 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     if (userId) {
         try {
-            const snap = await getDoc(doc(firestoreDb, 'members', userId));
-            if (!snap.exists()) { showNotFound(); return; }
-            const userData = snap.data();
-            
-            // Security: If not admin, ensure they are viewing their own profile
+            const res = await fetch(`/api/member?id=${encodeURIComponent(userId)}`);
+            if (res.status === 404) { showNotFound(); return; }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const userData = data.member;
+
             if (userData.email !== email) {
                 console.warn('Access denied: Email mismatch');
             }
 
             hideLoading();
             populatePage(userData);
-        } catch (err) { 
-            console.error('Firestore Error (getDoc):', err);
-            showFetchError(); 
+        } catch (err) {
+            console.error('Error fetching member by id:', err);
+            showFetchError();
         }
         return;
     }
 
     try {
-        const q = query(collection(firestoreDb, 'members'), where('email', '==', email));
-        const snap = await getDocs(q);
-        if (snap.empty) { showProfileNotSetup(email); return; }
+        const res = await fetch(`/api/member?email=${encodeURIComponent(email)}`);
+        if (res.status === 404) { showProfileNotSetup(email); return; }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         hideLoading();
-        populatePage(snap.docs[0].data());
-    } catch (err) { 
-        console.error('Firestore Error (getDocs):', err);
-        showFetchError(); 
+        populatePage(data.member);
+    } catch (err) {
+        console.error('Error fetching member by email:', err);
+        showFetchError();
     }
 });
 
